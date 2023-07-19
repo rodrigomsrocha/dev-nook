@@ -1,3 +1,9 @@
+import { PostItem } from '@/components/PostItem'
+
 export default function Home() {
-  return <h1>Dev Nook</h1>
+  return (
+    <article className="space-y-8 pb-12">
+      <PostItem />
+    </article>
+  )
 }

@@ -22,12 +22,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <Providers attribute="class" defaultTheme="system" enableSystem>
         <body
           className={`${inter.variable} ${spaceGrotesk.variable} bg-rosePineDawn-base font-sans text-rosePineDawn-text transition-all dark:bg-rosePineMoon-base dark:text-rosePineMoon-text`}
         >
-          <main className="mx-auto min-h-screen max-w-4xl px-12">
+          <main className="mx-auto min-h-screen max-w-3xl px-12">
             <Header />
             {children}
           </main>
