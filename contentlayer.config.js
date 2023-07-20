@@ -29,6 +29,9 @@ export const Article = defineDocumentType(() => ({
       type: 'string',
       required: true,
     },
+    cover_url: {
+      type: 'string',
+    },
     published_at: {
       type: 'date',
       required: true,
