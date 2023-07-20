@@ -1,3 +1,17 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.dark
+pre[data-theme='light'],
+.dark
+code[data-theme='light'] {
+  display: none;
+}
+
+.light
+pre[data-theme='dark'],
+.light
+code[data-theme='dark'] {
+  display: none;
+}

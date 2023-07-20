@@ -48,7 +48,49 @@ module.exports = {
           highlightHigh: '#cecacd',
         },
       },
+      typography: ({ theme }) => ({
+        rosePine: {
+          css: {
+            '--tw-prose-body': theme('colors.rosePineDawn.text'),
+            '--tw-prose-headings': theme('colors.rosePineDawn.text'),
+            '--tw-prose-links': theme('colors.rosePineDawn.iris'),
+            '--tw-prose-bold': theme('colors.rosePineDawn.iris'),
+            '--tw-prose-bullets': theme('colors.rosePineDawn.iris'),
+            '--tw-prose-counters': theme('colors.rosePineDawn.iris'),
+            '--tw-prose-hr': theme('colors.rosePineDawn.highlightMed'),
+            '--tw-prose-quotes': theme('colors.rosePineDawn.text'),
+            '--tw-prose-quote-borders': theme(
+              'colors.rosePineDawn.highlightMed',
+            ),
+            '--tw-prose-captions': theme('colors.rosePineDawn.highlightHigh'),
+            '--tw-prose-pre-bg': theme('colors.rosePineDawn.surface'),
+            '--tw-prose-th-borders': theme('colors.rosePineDawn.highlightMed'),
+            '--tw-prose-td-borders': theme('colors.rosePineDawn.highlightMed'),
+            '--tw-prose-invert-body': theme('colors.rosePineMoon.text'),
+            '--tw-prose-invert-headings': theme('colors.rosePineMoon.text'),
+            '--tw-prose-invert-links': theme('colors.rosePineMoon.iris'),
+            '--tw-prose-invert-bold': theme('colors.rosePineMoon.iris'),
+            '--tw-prose-invert-bullets': theme('colors.rosePineMoon.iris'),
+            '--tw-prose-invert-counters': theme('colors.rosePineMoon.iris'),
+            '--tw-prose-invert-hr': theme('colors.rosePineMoon.highlightMed'),
+            '--tw-prose-invert-quotes': theme('colors.rosePineMoon.text'),
+            '--tw-prose-invert-quote-borders': theme(
+              'colors.rosePineMoon.highlightMed',
+            ),
+            '--tw-prose-invert-captions': theme(
+              'colors.rosePineMoon.highlightHigh',
+            ),
+            '--tw-prose-invert-pre-bg': theme('colors.rosePineMoon.surface'),
+            '--tw-prose-invert-th-borders': theme(
+              'colors.rosePineMoon.highlightMed',
+            ),
+            '--tw-prose-invert-td-borders': theme(
+              'colors.rosePineMoon.highlightMed',
+            ),
+          },
+        },
+      }),
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography')],
 }

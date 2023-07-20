@@ -3,6 +3,7 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { Inter, Space_Grotesk as SpaceGrotesk } from 'next/font/google'
 import { Providers } from '@/components/Providers'
+import { Footer } from '@/components/Footer'
 
 const spaceGrotesk = SpaceGrotesk({
   subsets: ['latin'],
@@ -27,9 +28,10 @@ export default function RootLayout({
         <body
           className={`${inter.variable} ${spaceGrotesk.variable} bg-rosePineDawn-base font-sans text-rosePineDawn-text transition-all dark:bg-rosePineMoon-base dark:text-rosePineMoon-text`}
         >
-          <main className="mx-auto min-h-screen max-w-3xl px-12">
+          <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-12">
             <Header />
             {children}
+            <Footer />
           </main>
         </body>
       </Providers>
