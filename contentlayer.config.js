@@ -29,9 +29,9 @@ export const Article = defineDocumentType(() => ({
       type: 'string',
       required: true,
     },
-    published: {
-      type: 'boolean',
-      default: true,
+    published_at: {
+      type: 'date',
+      required: true,
     },
   },
   computedFields,
@@ -52,17 +52,6 @@ export default makeSource({
             dark: 'rose-pine-moon',
           },
           keepBackground: false,
-          onVisitLine(node) {
-            if (node.children.length === 0) {
-              node.children = [{ type: 'text', value: ' ' }]
-            }
-          },
-          onVisitHighlightedLine(node) {
-            node.properties.className.push('line--highlighted')
-          },
-          onVisitHighlightedWord(node) {
-            node.properties.className.push('word--highlighted')
-          },
         },
       ],
       [
