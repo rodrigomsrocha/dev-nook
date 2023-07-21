@@ -8,7 +8,7 @@
 </div>
 
 # Overview
-Devnook is my personal blog made with **nextJS** and its lastest features from version 13, I also used contentlayer to so I can write the posts with **MDX**
+Welcome to DevNook's GitHub repository! 🚀 DevNook is a blog dedicated to all things software development and programming. In this repository, you'll find a treasure trove of valuable resources, insightful articles, and practical code examples covering various programming languages, frameworks, and technologies.
 
 ### Features
 - [x] Dark mode
