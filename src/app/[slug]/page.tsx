@@ -32,7 +32,7 @@ export default async function Article({ params }: ArticleProps) {
         {article.title}
       </h1>
       {article.cover_url && (
-        <div className="relative mb-8 h-72 w-full overflow-hidden rounded">
+        <div className="relative mb-12 h-72 w-full overflow-hidden rounded">
           <Image
             src={article.cover_url}
             alt={article.title}

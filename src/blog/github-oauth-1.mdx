@@ -1,0 +1,124 @@
+---
+title: "OAuth 2.0 authorization with GitHub (Part 1)"
+description: "Today we will learn how to implement auth to our app with OAtuh. OAuth is a simple token-based authorization that makes easier for users to sign into your app without haveing to fill forms to create accounts."
+published_at: 2023-07-26
+cover_url: "https://images.unsplash.com/photo-1618044619888-009e412ff12a?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1471&q=80"
+---
+
+## Whats OAuth 2.0 and how does it works?
+OAuth 2.0 (Open Authorization) is an authorization strategy that enables third-party
+applications to access some resources on behalf of a user without needing to know
+the user's credentials (such as username and passwords). It provides a more secure
+way for users to grant access to other applications without sharing sensitive information.
+
+The OAuth 2.0 protocol is used by modern web applicaitons to allow users to log in
+using their existing accounts from populars services like Google, Facebook, Twitter,
+GitHub, and others.
+
+### But why OAtuh?
+We have a lot of strategies to implement authorization, but OAtuh is special in
+three ways:
+
+- **Granular Access Levels:** That means that when the user logs in with some of
+the services mentioned before, you can request specific information from their
+account. For example, if you only need their profile name and email for your app,
+you can request that data. This allows apps to request only the data they need.
+- **Read or Read + Write Access:** You can either ask them just to retrieve
+information like name, email, etc. Or you can ask for write access as well. For
+example you have a blog app that wants to post to Facebook's user account, then
+we would need an Read + Write Access.
+- **Revoke Access:** The service we're using to authenticate our users must give
+them the ability to revoke access at any time. For example, if we're authenticating
+with GitHub, the user should be able to go into their accout and de-authorize the
+access they granted to our website
+
+## Implementing GitHub OAuth
+Now let's put hands on work and build a small application using the OAuth strategy.
+
+### The OAuth flow
+1. The client requests authorization from the resource owner (user) by redirecting
+them to the authorization server.
+2. The user authenticates with the authorization server and grants permission to
+the client.
+3. The authorization server issues an access token to the client.
+4. The client uses the access token to request resources from the resource server
+on behalf of the user.
+5. The resource server validates the access token and, if valid, provides the
+requested resources to the client.
+
+### Creating a Next app
+First let's start by creating an application in NextJS:
+
+```bash
+npm create next-app oauth2.0
+```
+
+Mark yes for everything we will use the app router and next 13 features.
+
+Let's create some components, create a components folder at src, then create a
+**Profile.tsx** it'll look like this:
+
+```tsx
+import Image from 'next/image'
+
+export function Profile() {
+  return (
+    <div className="flex gap-2 items-center bg-zinc-700 p-2 rounded w-60">
+      <Image
+        src="https://github.com/rodrigomsrocha.png"
+        width={60}
+        height={60}
+        alt="rodrigo"
+        className="rounded"
+      />
+      <p>
+        Rodrigo
+        <a
+          className="block text-red-400 transition-colors hover:text-red-500"
+          href="#"
+        >
+          Log out
+        </a>
+      </p>
+    </div>
+  )
+}
+```
+
+And the **Signin.tsx** component:
+
+```tsx
+import { LuGithub } from 'react-icons/lu'
+
+export function SignIn() {
+  return (
+    <div>
+      <a
+        className="bg-zinc-500 text-lg py-2 px-4 rounded flex gap-2 items-center transition-colors hover:bg-zinc-600"
+        href="#"
+      >
+        <LuGithub className="text-2xl" />
+        Login with GitHub
+      </a>
+    </div>
+  )
+}
+```
+
+In the home page (page.tsx) file, we will conditionally render the components above:
+
+```tsx
+import { Profile } from '@/components/Profile'
+import { SignIn } from '@/components/Signin'
+
+export default function Home() {
+  const isAuthenticated = false
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      {isAuthenticated ? <Profile /> : <SignIn />}
+    </div>
+  )
+}
+```
+
+We will change it later. Continue in [part 2](/github-oauth-2)

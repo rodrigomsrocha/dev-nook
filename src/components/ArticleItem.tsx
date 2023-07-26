@@ -22,7 +22,7 @@ export function ArticleItem({ article }: ArticleItemProps) {
       >
         {article.title}
       </Link>
-      <p>{article.description}</p>
+      <p className="line-clamp-3 sm:line-clamp-none">{article.description}</p>
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2">
           <LuCalendar />
