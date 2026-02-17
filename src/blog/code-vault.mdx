@@ -1,0 +1,152 @@
+---
+title: I Built a Self-Hosted Snippet Manager in Go Because Pastebin Wasn't Enough
+description: Code Vault is an open-source, self-hosted snippet manager I built in Go. It features content-addressed deduplication, version control, auto-expiration, and a fuzzy finder with syntax highlighting all from the terminal.
+published_at: 2026-02-17
+cover_url: "https://images.unsplash.com/photo-1565126111587-f9fb04a432e4?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+---
+
+Every developer has a collection of code snippets. That one SQL query you always forget. The Bash one-liner that saves 20 minutes. A YAML config you've rewritten from memory one too many times.
+
+For a while, I kept mine in a mix of GitHub Gists, Notion pages, random `.txt` files, and Slack messages to myself. It worked until it didn't. At Linear Sistemas, where I work as part of an MSP managing infrastructure for multiple clients, the snippet problem scaled fast. Dozens of scripts, configs, and automation pieces with no central place to find them, no version history, and no way to know if someone else had already written what I needed.
+
+So I built **Code Vault** a self-hosted code snippet manager with versioning, deduplication, and auto-expiration. Think Pastebin, but for serious developers who want control over their data.
+
+Here's the story of building it, the architecture decisions behind it, and what I learned along the way.
+
+## The Problem: Where Did I Put That Script?
+
+The pain was simple and universal. I'd write a script, use it, and three weeks later need it again with no idea where it went. Multiply that across a team, and you get:
+
+**Snippets scattered everywhere.** Gists, shared drives, chat threads, someone's local machine. No single source of truth.
+
+**Zero version history.** Someone "improves" a config file and breaks it. Want to roll back? Hope you have the old version saved somewhere.
+
+**Constant duplication.** Two people independently write the same monitoring script because neither knew the other's version existed. Wasted effort, wasted storage.
+
+**Temporary snippets that live forever.** Quick debug scripts and one-off configs piling up alongside important production snippets, with no way to tell them apart.
+
+I looked at what existed. GitHub Gists are great but lack deduplication, expiration, and a good terminal-first UX. Snippet extensions in VS Code are editor-bound. Full artifact repositories like Nexus are designed for compiled binaries, not quick scripts. I needed something purpose-built for the way I actually work fast, terminal-native, and self-hosted.
+
+## The Stack: Go + PostgreSQL + SeaweedFS
+
+```
+┌─────────────┐
+│   CLI Tool  │
+└───┬─────────┘
+    │
+    ├───────────────┐
+    │               │
+┌───▼────────┐   ┌──▼───────┐
+│ PostgreSQL │   │SeaweedFS │
+│ (Metadata) │   │ (Content)│
+└────────────┘   └──────────┘
+```
+
+### Go for the CLI
+
+This was a natural choice. Go compiles to a single static binary no runtime, no dependencies, just drop it on a machine and it works. For a tool that needs to run on any technician's laptop or server, that's a huge deal. No "install Python 3.11 first" conversations.
+
+I used `cobra` for the CLI framework, which gave me a clean command structure out of the box. The interactive features fuzzy finder with live preview, syntax highlighting in the terminal were some of the most satisfying parts to build. Running `vault get` and having an interactive fuzzy search pop up with a colored preview of each snippet feels *good* to use.
+
+Go's concurrency also came in handy for the background cleanup worker that handles expired snippets it runs continuously, checking on an interval, and goroutines make the parallel hash computations for deduplication nearly trivial.
+
+### PostgreSQL for Metadata
+
+Every snippet carries metadata: title, tags, language, version history, creator, expiration date. PostgreSQL handles this reliably and supports concurrent team access without the file-locking issues you'd hit with SQLite.
+
+The versioning model lives here each update creates a new version record linked to the snippet. No branches, no merge conflicts. Just a clean linear history that you can browse and roll back to:
+
+```bash
+vault versions <snippet-id>
+vault diff <snippet-id> --from 1 --to 3
+vault get <snippet-id> --version 2
+```
+
+### SeaweedFS for Content Storage
+
+The actual snippet content files, configs, sometimes bundled archives lives in SeaweedFS, a distributed object store with S3-compatible APIs. It's lightweight, fast to self-host, and gave me content-addressable storage that feeds directly into the deduplication engine.
+
+Why not just store blobs in PostgreSQL? Separation of concerns. PostgreSQL is great at structured queries over metadata. SeaweedFS is great at storing and retrieving bytes efficiently. Each does what it does best, and the system stays clean.
+
+The whole infrastructure spins up with one command:
+
+```bash
+docker-compose up -d
+```
+
+That gives you PostgreSQL 16 and a full SeaweedFS cluster (master, volume, filer, S3 gateway). From zero to running in under a minute.
+
+## Smart Deduplication: Content-Addressed Storage
+
+This was the feature I was most excited to build. The concept is simple: before storing any snippet, compute a SHA-256 hash of its content. If that hash already exists in the system, don't store a duplicate just create a reference to the existing blob.
+
+In practice, the savings add up. If three team members independently upload the same monitoring script, it's stored once:
+
+```
+3 snippets with identical content:
+Without deduplication: 3 × 10 KB = 30 KB
+With deduplication:    1 × 10 KB = 10 KB
+Savings: 66%
+```
+
+This matters less for raw storage costs (snippets are small) and more for *clarity*. When the system tells you "this content already exists," it surfaces duplicates you didn't know about. Suddenly your team goes from five versions of the same script to one canonical source.
+
+## Auto-Expiration: Snippets That Clean Up After Themselves
+
+Not every snippet deserves to live forever. Debug scripts, temporary configs, one-off queries they have a shelf life. Code Vault lets you set expiration at creation time:
+
+```bash
+vault create temp-debug.sh --expires 24h
+vault create staging-config.yaml --expires 7d
+```
+
+You can also manage expiration after the fact extend it, shorten it, or remove it entirely:
+
+```bash
+vault expire <snippet-id> --extend 7d
+vault expire <snippet-id> --remove
+```
+
+A background worker handles the actual cleanup, either running continuously or as a one-shot:
+
+```bash
+vault worker --interval 1h
+```
+
+This was a small feature to implement but it changed how the team uses the tool. People started storing throwaway snippets without guilt, knowing they wouldn't clutter the system long-term. The `--expiring-soon` flag on `vault list` gives you a heads-up before anything disappears.
+
+## The Terminal UX: Making It Feel Good
+
+A CLI tool lives or dies by its UX. If it's faster to just grep through a folder, nobody will use your fancy snippet manager. I invested a lot of time making Code Vault feel snappy and pleasant:
+
+**Interactive fuzzy finder.** Running `vault get` without arguments opens an interactive search with live preview. Start typing and results narrow down instantly. Arrow keys to browse, enter to select the snippet shows up with full syntax highlighting.
+
+**Clipboard integration.** `vault get <id> --copy` puts the snippet content directly in your clipboard. No piping, no temp files.
+
+**File output.** `vault get <id> -o script.sh` saves directly to a file. Simple, but essential for the workflow of "find snippet, use snippet."
+
+**Syntax highlighting.** Terminal output is colorized based on the snippet's language. It's a small touch that makes browsing genuinely enjoyable instead of squinting at monochrome text.
+
+## What I Learned
+
+**Go's simplicity is a feature, not a limitation.** Coming from TypeScript and C#, Go felt restrictive at first. But that simplicity meant every file in the codebase stayed readable. Six months later, I can open any module and understand what it does immediately. For a tool your team depends on daily, maintainability beats cleverness.
+
+**Content-addressable storage changes how you think.** Once you hash everything, questions like "is this a duplicate?" and "has this changed?" become trivial lookups. The deduplication system was one of the first things I built, and it shaped the entire architecture. I'd use this pattern again in a heartbeat.
+
+**Build for the terminal first.** I was tempted to start with a web UI. I'm glad I didn't. The people who use Code Vault the most are the ones who live in their terminal. The fuzzy finder, clipboard support, and syntax highlighting give them a workflow that's faster than any browser-based alternative. A web UI can come later and it won't replace the CLI, just complement it.
+
+**Auto-expiration is underrated.** I almost left this out of the first version. It turned out to be one of the most-used features. Temporary snippets are a real use case that most tools ignore, forcing users to either pollute their collections or manage cleanup manually.
+
+**Docker Compose is your friend for dev infra.** SeaweedFS has a few moving parts (master, volume server, filer, S3 gateway). Bundling everything into a `docker-compose.yml` meant contributors could go from clone to running in one command. Lower the barrier and people actually try your tool.
+
+## What's Next
+
+Code Vault is open-source and actively evolving. Tags and search are being improved, and I'm exploring better fuzzy matching and integration with deployment pipelines. A lightweight web UI for browsing is on the roadmap too.
+
+But the core is solid and it's already part of our daily workflow. Sometimes the best tool is the one you build yourself not because nothing else exists, but because nobody understands your workflow better than you do.
+
+If you're drowning in scattered snippets, give it a shot. Or better yet, build your own. Either way, stop searching through Slack messages for that script you wrote last month.
+
+---
+
+*Built with Go, PostgreSQL, and SeaweedFS. [Check it out on GitHub →](https://github.com/yourusername/code-vault)*
